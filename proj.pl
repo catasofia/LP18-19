@@ -90,10 +90,12 @@ aplica_R1_R2_fila(Fila, N_Fila) :-
     aplica_R1_fila(Fila, Aux1),
     aplica_R2_fila(Aux1, N_Fila), !.
 
+
 aplica_R1_R2_puzzle_aux([], []).
 aplica_R1_R2_puzzle_aux([Fila1 | Resto], [N_Fila1 | Resto1]) :-
     aplica_R1_R2_fila(Fila1, N_Fila1), !,
     aplica_R1_R2_puzzle_aux(Resto, Resto1), !.
+
 
 aplica_R1_R2_puzzle([],[]).
 aplica_R1_R2_puzzle(Puz, N_Puz) :-
@@ -114,3 +116,26 @@ inicializa(Puz, N_Puz) :-
     aplica_R1_R2_puzzle(Puz, Aux1),
     aplica_R1_R2_puzzle(Aux1, N_Puz),
     N_Puz == Aux1, !.
+
+
+compara_listas(_,[]).
+compara_listas(Fila, [Linha | RLista]) :-
+    Fila \== Linha, !, 
+    compara_listas(Fila, RLista).
+compara_listas(Fila, [Linha|_]) :-
+    Fila == Linha, !, fail.
+
+
+verifica_R3([]).
+verifica_R3([H1 | Puz]) :-
+    compara_listas(H1, Puz), !,
+    verifica_R3(Puz).
+
+
+
+
+
+
+
+
+
