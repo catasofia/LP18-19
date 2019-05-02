@@ -1,25 +1,40 @@
+
+%---------------------------------------------------\
+%             Catarina Sousa - N.93695              |
+%---------------------------------------------------/
+
+
 :-[codigo_comum].
 
+%      /--------------------------------\
+%      |     PREDICADOS AUXILIARES      |
+%      \--------------------------------/
 
-%/--------------------------------\
-%|      FUNCOES AUXILIARES        |
-%\--------------------------------/
 
-%conta_elementos_1(Lista, N): N e o numero de 1s existentes na Lista
+%--------------------------------------------------------------------
+%conta_elementos_1(Lista, N):
+%   Devolve: O numero de uns existentes na Lista (N).
+%--------------------------------------------------------------------
+
 conta_elementos_1(Lista, N) :- 
     findall(X, (member(X,Lista), X == 1), Aux),
     length(Aux, N).
 
 
+%--------------------------------------------------------------------
+%conta_elementos_0(Lista, N):
+%   Devolve: O numero de zeros existentes na Lista (N).
+%--------------------------------------------------------------------
 
-%conta_elementos_0(Lista, N): N e o numero de 0s existentes na Lista
 conta_elementos_0(Lista, N) :-
     findall(X, (member(X,Lista), X == 0), Aux),
     length(Aux, N).
 
 
-
-%trocar(Lista, Elem) :- funcao que unifica na Lista recebida todas as variaveis com Elem.
+%---------------------------------------------------------------------
+%trocar(Lista, Elem): funcao que devolve a Lista com todas as 
+%   variaveis da Lista unificadas com o Elem.
+%---------------------------------------------------------------------
 trocar([],_).
 trocar([H | T], Elem) :- 
     var(H),
@@ -30,9 +45,10 @@ trocar([H | T], Elem) :-
     trocar(T, Elem).
 
 
-
-%compara_Listas(Lista, Puzzle): funcao que retorna True se a Lista nao estiver contida
-%no Puzzle e False em caso contrario.
+%------------------------------------------------------------------------------------
+%compara_Listas(Lista, Puzzle):
+%   Devolve: True se a Lista nao estiver contida no Puzzle e False caso contrario.
+%------------------------------------------------------------------------------------
 compara_listas(_,[]).
 compara_listas(Fila, [Linha | RLista]) :-
     Fila \== Linha, !, 
@@ -41,8 +57,135 @@ compara_listas(Fila, [Linha|_]) :-
     Fila == Linha, !, fail.
 
 
+%-------------------------------------------------------------------------------------
+%aplica_R1_R2_puzzle_aux(Puzzle, N_Puzzle):devolve N_Puzzle que e o resultante de 
+%   aplicar as Regras 1 e 2 as linhas do Puzzle.
+%-------------------------------------------------------------------------------------
+aplica_R1_R2_puzzle_aux([], []).
+aplica_R1_R2_puzzle_aux([Fila1 | Resto], [N_Fila1 | Resto1]) :-
+    aplica_R1_R2_fila(Fila1, N_Fila1), !,
+    aplica_R1_R2_puzzle_aux(Resto, Resto1), !.
 
 
+%------------------------------------------------------------------------------------
+%compara_elementos_linhas(Lista1, Lista2, Linha, Coluna, Posicoes, NPosicoes) :
+%   predicado que compara a Lista1 com a Lista2 elemento a elemento e retorna NPosicoes,
+%   que sao as posicoes do Puzzle que sao diferentes das anteriores.
+%------------------------------------------------------------------------------------
+compara_elementos_linhas([],[],_,_,Posicoes, Posicoes).
+
+compara_elementos_linhas(Lista1, Lista2,_ ,_, Posicoes, Posicoes) :-
+    Lista1 =@= Lista2, !.
+
+compara_elementos_linhas([H1 | Resto1], [H2 | Resto2], L, C, Posicoes, NPosicoes) :-
+    H1 \=@= H2,
+    append(Posicoes, [(L, C)], NPosicoes_aux),
+    C1 is C + 1, !,
+    compara_elementos_linhas(Resto1, Resto2, L, C1, NPosicoes_aux, NPosicoes).
+
+compara_elementos_linhas([H1 | Resto1], [H2 | Resto2], L, C, Posicoes, NPosicoes) :-
+    H1 =@= H2,
+    C1 is C + 1, !,
+    compara_elementos_linhas(Resto1, Resto2, L, C1, Posicoes, NPosicoes).
+
+
+%------------------------------------------------------------------------------------
+%compara_elementos_colunas(Lista1, Lista2, Linha, Coluna, Posicoes, NPosicoes) :
+%   predicado que compara a Lista1 com a Lista2 elemento a elemento, e retorna 
+%   NPosicoes, que sao as posicoes do Puzzle que sao diferentes das anteriores.
+%------------------------------------------------------------------------------------
+compara_elementos_colunas([],[],_,_,Posicoes, Posicoes).
+
+compara_elementos_colunas([H1 | Resto1], [H2 | Resto2], L, C, Posicoes, NPosicoes) :-
+    H1 \=@= H2,
+    append(Posicoes, [(C,L)], NPosicoes_aux),
+    C1 is C + 1, !,
+    compara_elementos_colunas(Resto1, Resto2, L, C1, NPosicoes_aux, NPosicoes).
+
+compara_elementos_colunas([H1 | Resto1], [H2 | Resto2], L, C, Posicoes, NPosicoes) :-
+    H1 =@= H2,
+    C1 is C + 1, !,
+    compara_elementos_colunas(Resto1, Resto2, L, C1, Posicoes, NPosicoes).
+
+
+%------------------------------------------------------------------------------------
+%encontra_var_linhas(Lista, Linha, Coluna, Posicoes, NPosicoes):
+%   Devolve: NPosicoes.
+%   Descricao: encontra a primeira variavel da Lista e devolve-a em NPosicoes.
+%------------------------------------------------------------------------------------
+encontra_var_linhas([],_,_,Posicoes, Posicoes).
+
+encontra_var_linhas([El | _], L, C, Posicoes, NPosicoes) :-
+    var(El), !,
+    append(Posicoes, [(L, C)], NPosicoes).
+
+encontra_var_linhas([El | RestoLinha], L, C, Posicoes, NPosicoes) :-
+    number(El),
+    C1 is C + 1, !,
+    encontra_var_linhas(RestoLinha, L, C1, Posicoes, NPosicoes).
+
+
+%-----------------------------------------------------------------------------------
+%encontra_var_puzzle(Puzzle, Linha, Posicoes):
+%   Devolve: Posicoes -> recorrendo ao predicadoencontra_var_linhas devolve 
+%           em Posicoes a primeira posicao do Puzzle que e uma variavel.
+%-----------------------------------------------------------------------------------
+encontra_var_puzzle([],_,Posicoes) :-
+    Posicoes = [(1,1)], !.
+
+encontra_var_puzzle(_,_,Posicoes) :-
+    not(var(Posicoes)),
+    Posicoes \== [], !.
+
+encontra_var_puzzle([Lista1 | Resto1], L, NPosicoes) :-
+    encontra_var_linhas(Lista1, L, 1, _, NPosicoes),
+    L1 is L+1, !,
+    encontra_var_puzzle(Resto1, L1, NPosicoes).
+
+
+%-----------------------------------------------------------------------------------
+%so_numeros_listas(Lista): 
+%   Devolve: True ou False
+%   Descricao: Predicado que verifica se a Lista so contem numeros.
+%-----------------------------------------------------------------------------------
+so_numeros_listas([]).
+so_numeros_listas(Lista) :-
+    [El |_] = Lista,
+    var(El), !,
+    fail.
+
+so_numeros_listas(Lista) :-
+    [El | Resto] = Lista,
+    number(El), !,
+    so_numeros_listas(Resto).
+
+
+%-------------------------------------------------------------------------------------
+%so_numeros_puzzle(Puzzle): 
+%   Devolve: True ou False.
+%   Descricao: Predicado que, recorrendo ao predicado so_numeros_listas, verifica
+%               se o Puzzle so contem numeros.
+%-------------------------------------------------------------------------------------
+so_numeros_puzzle([]).
+
+so_numeros_puzzle(Puz) :-
+    [Lista1 | Resto] = Puz,
+    so_numeros_listas(Lista1),
+    so_numeros_puzzle(Resto), !.
+
+
+
+%      /--------------------------------\
+%      |     PREDICADOS DO PROJETO      |
+%      \--------------------------------/
+
+
+
+%--------------------------------------------------------------------------------------
+%aplica_R1_triplo(Triplo, R): 
+%   Devolve: R -> o triplo resultante de aplicar a Regra 1 do jogo ao Triplo, isto e,
+%           nao existem 3 zeros ou 3 uns seguidos em nenhuma linha ou coluna.
+%--------------------------------------------------------------------------------------
 aplica_R1_triplo(Lista, R) :- Lista = [Y,X,Y], var(Y), number(X), !, R = Lista.
 aplica_R1_triplo(Lista, R) :- Lista = [Y,Y,X], var(Y), number(X), !, R = Lista.
 aplica_R1_triplo(Lista, R) :- Lista = [X,Y,Y], var(Y), number(X), !, R = Lista.
@@ -58,7 +201,11 @@ aplica_R1_triplo([0,X,1], R) :- var(X), !, R = [0, X, 1].
 aplica_R1_triplo(Lista, R) :- Lista \= [1,1,1], Lista \= [0,0,0], !, R = Lista.
 
 
-
+%--------------------------------------------------------------------------------------
+%aplica_R1_fila_aux(Fila, N_Fila): 
+%   Devolve: N_Fila -> o resultante de aplicar da Regra 1 a Fila do inicio ao fim,
+%           uma so vez.
+%--------------------------------------------------------------------------------------
 aplica_R1_fila_aux(Fila, N_Fila) :- 
     length(Fila, X), 
     X == 3, !, 
@@ -71,7 +218,11 @@ aplica_R1_fila_aux(Fila, N_Fila) :-
     N_Fila= [X1|N_aux].
 
 
-
+%--------------------------------------------------------------------------------------
+%aplica_R1_fila(Fila, N_Fila): 
+%   Devolve: N_Fila -> o resultante de aplicar a Regra 1 a Fila ate nao ser possivel
+%           alterar mais nenhuma posicao.
+%--------------------------------------------------------------------------------------
 aplica_R1_fila(Fila, N_Fila) :- 
     aplica_R1_fila_aux(Fila, Aux1),
     aplica_R1_fila_aux(Aux1, Aux2),
@@ -84,7 +235,11 @@ aplica_R1_fila(Fila, N_Fila) :-
     N_Fila == Aux1, !.
 
 
-
+%--------------------------------------------------------------------------------------
+%aplica_R2_fila(Fila, N_Fila): 
+%   Devolve: N_Fila -> o resultante de aplicar a Regra 2 a Fila, isto e, todas as 
+%           linhas e colunas tem o mesmo numero de zeros e uns (metade do tamanho).
+%--------------------------------------------------------------------------------------
 aplica_R2_fila(Fila, N_Fila) :- 
     length(Fila, NumElem),
     conta_elementos_1(Fila, Num1),
@@ -108,20 +263,20 @@ aplica_R2_fila(Fila, N_Fila) :-
     trocar(N_Fila, 1), !.
 
 
-
+%-------------------------------------------------------------------------------------
+%aplica_R1_R2_fila(Fila,  N_Fila): 
+%   Devolve: N_Fila -> o resultante de aplicar as Regras 1 e 2 a Fila.
+%-------------------------------------------------------------------------------------
 aplica_R1_R2_fila(Fila, N_Fila) :-
     aplica_R1_fila(Fila, Aux1),
     aplica_R2_fila(Aux1, N_Fila), !.
 
 
-
-aplica_R1_R2_puzzle_aux([], []).
-aplica_R1_R2_puzzle_aux([Fila1 | Resto], [N_Fila1 | Resto1]) :-
-    aplica_R1_R2_fila(Fila1, N_Fila1), !,
-    aplica_R1_R2_puzzle_aux(Resto, Resto1), !.
-
-
-
+%-------------------------------------------------------------------------------------
+%aplica_R1_R2_puzzle(Puzzle, N_Puzzle): 
+%   Devolve: N_Puzzle -> o resultante de aplicar as Regras 1 e 2 a todas as 
+%           linhas e a todas as colunas do Puzzle.
+%-------------------------------------------------------------------------------------
 aplica_R1_R2_puzzle([],[]).
 aplica_R1_R2_puzzle(Puz, N_Puz) :-
     aplica_R1_R2_puzzle_aux(Puz, Aux1),
@@ -130,7 +285,11 @@ aplica_R1_R2_puzzle(Puz, N_Puz) :-
     mat_transposta(Aux3, N_Puz), !.
     
     
-
+%-------------------------------------------------------------------------------------
+%inicializa(Puz, N_Puz):
+%   Devolve: N_Puz -> o resultante de aplicar as Regras 1 e 2 ao Puz ate nao ser
+%           possivel mais alteracoes.
+%-------------------------------------------------------------------------------------
 inicializa(Puz, N_Puz) :-
     aplica_R1_R2_puzzle(Puz, Aux1),
     aplica_R1_R2_puzzle(Aux1, Aux2),
@@ -143,48 +302,21 @@ inicializa(Puz, N_Puz) :-
     N_Puz == Aux1, !.
 
 
-%verifica_R3(Puzzle): funcao que retorna True se nao existirem linhas ou colunas repetidas e
-% false em caso contrario.
+%-------------------------------------------------------------------------------------
+%verifica_R3(Puzzle):
+%   Devolve: True se nao existirem linhas iguais entre si e colunas iguais entre si.
+%-------------------------------------------------------------------------------------
 verifica_R3([]).
 verifica_R3([H1 | Puz]) :-
     compara_listas(H1, Puz), !,
     verifica_R3(Puz).
     
 
-
-compara_elementos_linhas([],[],_,_,Posicoes, Posicoes).
-
-compara_elementos_linhas(Lista1, Lista2,_ ,_, Posicoes, Posicoes) :-
-    Lista1 =@= Lista2, !.
-
-compara_elementos_linhas([H1 | Resto1], [H2 | Resto2], L, C, Posicoes, NPosicoes) :-
-    H1 \=@= H2,
-    append(Posicoes, [(L, C)], NPosicoes_aux),
-    C1 is C + 1, !,
-    compara_elementos_linhas(Resto1, Resto2, L, C1, NPosicoes_aux, NPosicoes).
-
-compara_elementos_linhas([H1 | Resto1], [H2 | Resto2], L, C, Posicoes, NPosicoes) :-
-    H1 =@= H2,
-    C1 is C + 1, !,
-    compara_elementos_linhas(Resto1, Resto2, L, C1, Posicoes, NPosicoes).
-
-
-
-compara_elementos_colunas([],[],_,_,Posicoes, Posicoes).
-
-compara_elementos_colunas([H1 | Resto1], [H2 | Resto2], L, C, Posicoes, NPosicoes) :-
-    H1 \=@= H2,
-    append(Posicoes, [(C,L)], NPosicoes_aux),
-    C1 is C + 1, !,
-    compara_elementos_colunas(Resto1, Resto2, L, C1, NPosicoes_aux, NPosicoes).
-
-compara_elementos_colunas([H1 | Resto1], [H2 | Resto2], L, C, Posicoes, NPosicoes) :-
-    H1 =@= H2,
-    C1 is C + 1, !,
-    compara_elementos_colunas(Resto1, Resto2, L, C1, Posicoes, NPosicoes).
-
-
-
+%-------------------------------------------------------------------------------------
+%propaga_posicoes(Posicoes, Puz, N_Puz):
+%   Devolve: N_Puz -> o resultante de propagar as posicoes alteradas em cada alteracao
+%           feita.
+%-------------------------------------------------------------------------------------
 propaga_posicoes([],Puz,Puz).
 propaga_posicoes([(Linha, Coluna) | RestoPosicoes], Puz, N_Puz) :-
     duplicate_term(Puz, Aux),
@@ -203,13 +335,41 @@ propaga_posicoes([(Linha, Coluna) | RestoPosicoes], Puz, N_Puz) :-
     propaga_posicoes(NPosicoes, NPuz, N_Puz), !.
 
 
-
-/* encontra_var_linhas([El | RestoLinha], L, C, Posicoes) :-
-    var(El),
-
-
+%-------------------------------------------------------------------------------------
+%resolve(Puz, Solucao):
+%   Devolve: Solucao -> resultante de resolver o Puz segundo as regras necessarias.
+%-------------------------------------------------------------------------------------
+resolve(Puz,Puz) :-
+    so_numeros_puzzle(Puz), !.
 
 resolve(Puz, Sol) :-
     duplicate_term(Puz, PuzAux),
     inicializa(PuzAux, PuzIniciado),
- */
+    verifica_R3(PuzIniciado),
+    encontra_var_puzzle(PuzIniciado, 1, Posicoes),
+    not(so_numeros_puzzle(PuzIniciado)) -> [(Linha, Coluna)] = Posicoes,
+    not(so_numeros_puzzle(PuzIniciado)) -> mat_muda_posicao(PuzIniciado, (Linha, Coluna), 0, PuzAlterado),
+    propaga_posicoes(Posicoes, PuzAlterado, Puzpropagado),
+    resolve(Puzpropagado, Sol), !.
+
+resolve(Puz, Sol) :-
+    duplicate_term(Puz, PuzAux),
+    inicializa(PuzAux, PuzIniciado),
+    verifica_R3(PuzIniciado),
+    encontra_var_puzzle(PuzIniciado, 1, Posicoes),
+    not(so_numeros_puzzle(PuzIniciado)) -> [(Linha, Coluna)] = Posicoes,
+    not(so_numeros_puzzle(PuzIniciado)) -> mat_muda_posicao(PuzIniciado, (Linha, Coluna), 1, PuzAlterado),
+    propaga_posicoes(Posicoes, PuzAlterado, Puzpropagado),
+    resolve(Puzpropagado, Sol), !.
+
+resolve(Puz, Sol) :-
+    duplicate_term(Puz, PuzAux),
+    inicializa(PuzAux, Sol),
+    verifica_R3(Sol),
+    encontra_var_puzzle(Sol, 1,_), !.
+
+    
+
+
+
+
